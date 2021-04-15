@@ -1,0 +1,15 @@
+{
+	"tagRule": [
+		{
+			"meTypes": [
+			],
+			"tags": [
+				{
+					"context": "CONTEXTLESS",
+					"key": "splitTag",
+					"value": "splitName"
+				}
+			]
+		}
+	]
+}
