@@ -16,6 +16,14 @@ public class Configuration {
     
     public String[] entities;
 
+
+    public String
+    toString() {
+	return "dynatraceApiKey: " + dynatraceApiKey
+          + " dynatraceUrl: " + dynatraceUrl
+          + " dynatraceTag: " + dynatraceTag;
+    }
+
     public static Configuration fromFile(String configFilePath) throws IOException {
         String configContents = FileUtils.readFileToString(new File(configFilePath), StandardCharsets.UTF_8);
         return new Gson().fromJson(configContents, Configuration.class);

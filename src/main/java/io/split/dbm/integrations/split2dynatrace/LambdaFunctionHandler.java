@@ -9,6 +9,11 @@ import java.io.PrintWriter;
 import java.util.Map;
 import java.util.TreeMap;
 import java.nio.charset.StandardCharsets;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 
 import org.json.JSONObject;
 
@@ -51,6 +56,7 @@ public class LambdaFunctionHandler implements RequestStreamHandler {
 		File configFile = new File(classLoader.getResource("split2dynatrace.config").getFile());		
 		logger.log("reading config from file with path: " + configFile.getAbsolutePath());
 		Configuration config = Configuration.fromFile(configFile.getAbsolutePath());
+		logger.log("config: " + config.toString());
 
 		JSONObject annotation = buildPostForDynatrace(change, config);
 
@@ -102,10 +108,36 @@ public class LambdaFunctionHandler implements RequestStreamHandler {
 		return annotation;
 	}
 
+    private static final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+
 	private static void postEventToDynatrace(Configuration config, JSONObject annotation)
 			throws IOException, InterruptedException {
 		long start = System.currentTimeMillis();
 		logger.log("INFO - Sending annotations to Dynatrace");
+
+		String url = config.dynatraceUrl;
+		if(url.endsWith("/")) {
+		  url = url.substring(0, url.lastIndexOf("/"));
+		}
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .POST(HttpRequest.BodyPublishers.ofString(annotation.toString()))
+                        .uri(URI.create(url + "/api/v1/events"))
+                        .setHeader("Content-Type", "application/json")
+                        .setHeader("Authorization", "Api-Token " + config.dynatraceApiKey)
+                        .build();
+
+		logger.log("url: " + url + "/api/v1/events");
+
+	 	HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+	        logger.log("INFO - java.net.HttpClient to dynatrace status code: " + response.statusCode() + " response body: " + response.body());
+	
+		/*
 		OkHttpClient client = new OkHttpClient();
 		
 		RequestBody body = RequestBody.create(
@@ -117,11 +149,11 @@ public class LambdaFunctionHandler implements RequestStreamHandler {
 			      .addHeader("Authorization", "Api-Token " + config.dynatraceApiKey)
 			      .post(body)
 			      .build();
-		
 	    Call call = client.newCall(request);
 	    Response response = call.execute();
 	    logger.log("INFO - post to dynatrace status code: " + response.code() + " response body: " + response.body().string());
 	    
+	*/	
 		logger.log("INFO - finished sending annotations to Dynatrace in " + (System.currentTimeMillis() - start) + "ms");
 	}
 }
