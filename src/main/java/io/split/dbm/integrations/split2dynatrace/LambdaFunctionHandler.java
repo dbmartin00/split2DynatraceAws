@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Map;
 import java.util.TreeMap;
+import java.nio.charset.StandardCharsets;
 
 import org.json.JSONObject;
 
@@ -22,6 +23,8 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
+import org.apache.commons.io.IOUtils;
+
 public class LambdaFunctionHandler implements RequestStreamHandler {
 
 	static LambdaLogger logger;
@@ -32,8 +35,17 @@ public class LambdaFunctionHandler implements RequestStreamHandler {
 
         logger = context.getLogger();
 		long start = System.currentTimeMillis();
-		SplitChange change = new Gson().fromJson(new InputStreamReader(input), SplitChange.class);
+		String event = IOUtils.toString(input, StandardCharsets.UTF_8);
+		logger.log("event: " + event);
+		final JSONObject eventObj = new JSONObject(event);
+
+		logger.log("event as JSONObject: " + eventObj);
+
+		String body = eventObj.getString("body");
+		logger.log("body string: " + body);
+		SplitChange change = new Gson().fromJson(body, SplitChange.class);
 		logger.log("successfully parsed change in " + (System.currentTimeMillis() - start) + "ms");
+		logger.log("change: " + change.toString());
 
 		classLoader = getClass().getClassLoader();
 		File configFile = new File(classLoader.getResource("split2dynatrace.config").getFile());		
